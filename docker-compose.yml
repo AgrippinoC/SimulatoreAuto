@@ -1,0 +1,51 @@
+services:
+  veicolo_db:
+    image: mysql:8
+    container_name: veicolo_db
+    environment:
+      MYSQL_DATABASE: simulatore
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./auto.sql:/docker-entrypoint-initdb.d/auto.sql
+      - mysqlcars:/var/lib/mysql
+    networks:
+      - sim_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      interval: 5s
+
+  cpp_simulatore:
+    build:
+      context: .
+      dockerfile: cpp/Dockerfile
+    environment:
+      DB_HOST: veicolo_db
+      MYSQL_DATABASE: simulatore
+    ports:
+      - "50051:50051"
+      - "50052:50052"
+    depends_on:
+      veicolo_db:
+        condition: service_healthy
+      py_calcolatore:
+        condition: service_started
+    networks:
+      - sim_net
+
+  py_calcolatore:
+    build: 
+      context: .
+      dockerfile: py/Dockerfile
+    container_name: py_calcolatore
+    networks:
+      - sim_net
+
+volumes:
+  mysqlcars:
+
+networks:
+  sim_net:
