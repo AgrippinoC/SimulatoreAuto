@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package test;
+
+service ServiceCtoP {
+  rpc InvioPy (RequestCtoP) returns (ReplyCtoP);
+  rpc FinePy (Empty) returns (ReplyCtoP);
+}
+
+message RequestCtoP {
+  double tempo = 1;
+  double x = 2;
+  double y = 3;
+  double z = 4;
+  double vel = 5;
+  int32 marcia = 6;
+  double rpm = 7;
+  double temperatura = 8;
+  string inform = 9;
+}
+
+message Empty {}
+
+message ReplyCtoP {
+  bool rep = 1;
+}
+
+service ServiceCtoC {
+  rpc InvioCpp (RequestCtoC) returns (ReplyCtoC);
+}
+
+message RequestCtoC {
+  double go = 1;
+  string car = 2;
+}
+
+message ReplyCtoC {
+  bool success = 1;
+}
+
+message ReportData {
+  double v_media = 1;
+  double v_max = 2;
+  double a_max = 3;
+  double t_media = 4;
+  int32 rpm_max = 5;
+  int32 marcia = 6;
+  double dist = 7;
+  bytes img_data = 8;
+  bytes img_data2 = 9;
+  string inform = 10;
+}
+
+service ServicePtoC {
+  rpc InviaReport (ReportData) returns (ReplyCtoC);
+}
