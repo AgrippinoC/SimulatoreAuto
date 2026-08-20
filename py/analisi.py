@@ -1,9 +1,9 @@
-import numpy as np
+import numpy as np            # uso questi perchè sono più efficenti 
 import matplotlib.pyplot as plt
 import io
 import logging
 
-class telemetria:
+class Telemetria:
 
     @staticmethod
     def analizza(car_dict):
@@ -17,10 +17,12 @@ class telemetria:
             temp = np.array(car_dict['temp'])
             marce = np.array(car_dict['marcia'], dtype=int)
             
+            #velocità
             v_ = v * 3.6
             v_media = np.mean(v_)
             v_max = np.max(v_)
-
+            
+            #accelerazione
             dv = np.diff(v)
             dt = np.diff(t)
             a = np.divide(dv, dt, out=np.zeros_like(dv))
@@ -41,7 +43,7 @@ class telemetria:
             ax1.set_title('Traiettoria del veicolo')
             ax1.legend()
             ax1.grid(True, linestyle='--', alpha=0.6)
-            buf1 = io.BytesIO()
+            buf1 = io.BytesIO() #per salvare le immagini
             fig1.savefig(buf1, format='png')
             plt.close(fig1)
 
