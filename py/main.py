@@ -10,6 +10,7 @@ class ServiceCtoP(test_pb2_grpc.ServiceCtoPServicer):
         self.reset_data()
 
     def reset_data(self):
+        #dict di list
         self.data = { 'tempo': [], 'vel': [], 'marcia': [], 'rpm': [], 'temp': [], 'x': [], 'y': [], 'z': [] }
         self.descr = ""
 
@@ -33,7 +34,7 @@ class ServiceCtoP(test_pb2_grpc.ServiceCtoPServicer):
         
         if ris:
             report = test_pb2.ReportData(
-                **ris,
+                **ris, #dictionary unpacking (da verificare)
                 inform = self.descr
             )
 
@@ -52,6 +53,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     test_pb2_grpc.add_ServiceCtoPServicer_to_server(ServiceCtoP(), server)
     server.add_insecure_port("[::]:50051")
+    #parametri standard per gRPC
     logging.info("Server Python avviato sulla porta 50051")
     server.start()
     server.wait_for_termination()
