@@ -21,8 +21,8 @@ public class PtoCService : ServicePtoC.ServicePtoCBase {
 }
 
 public partial class Form1 : Form {
-    public static Form1? Istanza;
-    private Button? PANDA, GOLF, RESET;
+    public static Form1? Istanza; 
+    private Button? PANDA, GOLF, RESET;    //messi nullable dato che potevano essere null
     private string _auto = string.Empty;
 
     public Form1() {
@@ -48,7 +48,7 @@ public partial class Form1 : Form {
         });
     }
 
-    private async void Invio(double condizion, string automob) {
+    private async Task Invio(double condizion, string automob) {
         if(!string.IsNullOrEmpty(automob)) {
             _auto = automob;
             PANDA.Enabled = false; GOLF.Enabled = false;
@@ -56,8 +56,7 @@ public partial class Form1 : Form {
 
         if (condizion != 0.0 && !string.IsNullOrEmpty(_auto)) {
             try {
-                using var chan = GrpcChannel.ForAddress("http://localhost:50052");
-                var client = new ServiceCtoC.ServiceCtoCClient(chan);
+                using var chan = GrpcChannel.ForAddress("http://localhost:50052"); //using così non uso Dispose
                 var reply = await client.InvioCppAsync(new RequestCtoC { Go = condizion, Car = _auto });
                 Debug.WriteLine(reply);
                 RESET.Enabled = true;
@@ -68,7 +67,7 @@ public partial class Form1 : Form {
     }
 
     private void ZonaPuls(object sender, EventArgs e) {
-
+        //qua sono messe tutte le "cose UI"
         Label selA = new Label {
             AutoSize = true,
             Text = "SELEZIONE AUTOMOBILE",
