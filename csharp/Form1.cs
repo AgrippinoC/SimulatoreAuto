@@ -21,8 +21,8 @@ public class PtoCService : ServicePtoC.ServicePtoCBase {
 }
 
 public partial class Form1 : Form {
-    public static Form1? Istanza; 
-    private Button? PANDA, GOLF, RESET;    //messi nullable dato che potevano essere null
+    public static Form1? Istanza;
+    private Button? PANDA, GOLF, RESET; //messi nullable dato che potevano essere null
     private string _auto = string.Empty;
 
     public Form1() {
@@ -48,7 +48,7 @@ public partial class Form1 : Form {
         });
     }
 
-    private async Task Invio(double condizion, string automob) {
+    private async Task Invio(double condizion, string? automob) {
         if(!string.IsNullOrEmpty(automob)) {
             _auto = automob;
             PANDA.Enabled = false; GOLF.Enabled = false;
@@ -57,6 +57,7 @@ public partial class Form1 : Form {
         if (condizion != 0.0 && !string.IsNullOrEmpty(_auto)) {
             try {
                 using var chan = GrpcChannel.ForAddress("http://localhost:50052"); //using così non uso Dispose
+                var client = new ServiceCtoC.ServiceCtoCClient(chan);
                 var reply = await client.InvioCppAsync(new RequestCtoC { Go = condizion, Car = _auto });
                 Debug.WriteLine(reply);
                 RESET.Enabled = true;
@@ -82,7 +83,7 @@ public partial class Form1 : Form {
             BackColor = Color.AliceBlue,
             Padding = new Padding(5)
         };
-        PANDA.Click += (s, args) => { Invio(0.0, "Fiat Panda"); };
+        PANDA.Click += async (s, args) => { await Invio(0.0, "Fiat Panda"); };
         this.Controls.Add(PANDA);
 
         GOLF = new Button() {
@@ -92,7 +93,7 @@ public partial class Form1 : Form {
             BackColor = Color.AliceBlue,
             Padding = new Padding(5)
         };
-        GOLF.Click += (s, args) => { Invio(0.0, "VW Golf"); };
+        GOLF.Click += async (s, args) => { await Invio(0.0, "VW Golf"); };
         this.Controls.Add(GOLF);
 
         Label selC = new Label {
@@ -109,7 +110,7 @@ public partial class Form1 : Form {
             BackColor = Color.Cornsilk,
             Padding = new Padding(5)
         };
-        ANV.Click += (s, args) => { Invio(1.0, null); };
+        ANV.Click += async (s, args) => { await Invio(1.0, null); };
         this.Controls.Add(ANV);
 
         Button AV = new Button() {
@@ -119,7 +120,7 @@ public partial class Form1 : Form {
             BackColor = Color.Cornsilk,
             Padding = new Padding(5)
         };
-        AV.Click += (s, args) => { Invio(2.0, null); };
+        AV.Click += async (s, args) => { await Invio(2.0, null); };
         this.Controls.Add(AV);
 
         Button BNV  = new Button() {
@@ -129,7 +130,7 @@ public partial class Form1 : Form {
             BackColor = Color.Cornsilk,
             Padding = new Padding(5)
         };
-        BNV.Click += (s, args) => { Invio(3.0, null); };
+        BNV.Click += async (s, args) => { await Invio(3.0, null); };
         this.Controls.Add(BNV);
 
         RESET = new Button() {
@@ -139,7 +140,7 @@ public partial class Form1 : Form {
             BackColor = Color.MediumSeaGreen,
             Padding = new Padding(5)
         };
-        RESET.Click += (s, args) => { PANDA.Enabled = true; GOLF.Enabled = true; RESET.Enabled = false; _auto = "";};
+        RESET.Click += async (s, args) => { PANDA.Enabled = true; GOLF.Enabled = true; RESET.Enabled = false; _auto = "";};
         this.Controls.Add(RESET);
     }
 
@@ -179,10 +180,12 @@ public partial class Form1 : Form {
         };
         if (!request.ImgData.IsEmpty) {
             using var img = new MemoryStream(request.ImgData.ToByteArray());
+            //graf1.Image = Image.FromStream(img);
             graf1.Image = new Bitmap(img);
         }
         if (!request.ImgData2.IsEmpty) {
             using var ms = new MemoryStream(request.ImgData2.ToByteArray());
+            //graf2.Image = Image.FromStream(ms);
             graf2.Image = new Bitmap(ms);
         }
 
