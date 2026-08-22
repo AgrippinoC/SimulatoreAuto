@@ -13,7 +13,7 @@ void Motore::LogicaMotor(Stato& stato, double v, double t){
     stato.rpm = rotazioni * stato.rapporto[stato.marcia] * stato.differenziale;
     stato.rpm = std::max(stato.rpm, 800.0);
             
-    //cambio marcia
+    //cambio marcia e rpm
     if(stato.rpm > stato.rCambio && stato.marcia < 4){
         stato.marcia++;
     } else if (stato.rpm < 1200 && stato.marcia > 0) {
@@ -75,7 +75,7 @@ Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, doubl
     
 void Veicolo::update(double t, bool bagnato, int vento){
 
-    //preliminari
+    //preliminari per creare un percorso
     if(bagnato){ mu = f.mu_b; } else{ mu = f.mu; }
         pendenza = 0.0;
     if (stato.pos.x() > 150.0 && stato.pos.x() < 800.0) {
