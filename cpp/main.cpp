@@ -14,6 +14,7 @@
 #include "funzioni.h"
 
 using namespace Eigen;
+//quello per gRPC mi sono scordato di dare nome definitivo quando l'ho implemetnato
 using namespace test;
 
 
@@ -30,9 +31,11 @@ Dati DBveicolo(const std::string& nome) {
     std::unique_ptr<sql::Statement> stmt(con->createStatement());
     std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM veicoli WHERE nome = '" + nome + "'"));
 
+    //per sicurezza verifcio che nel database ci sia
     if (!res->next()) throw std::runtime_error("Veicolo " + nome +" non trovato nel DB");
 
     return { res->getString("nome"),
+             //ho fatto cast perchè le prime volte mi stava dando errori, quindi per sic ho impostato anche se dovrebbe esserlo di base come double
              static_cast<double>(res->getDouble("peso")),
              static_cast<double>(res->getDouble("coppia")),
              static_cast<double>(res->getDouble("raggio_ruota")),
