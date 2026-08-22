@@ -88,7 +88,7 @@ void Veicolo::update(double t, bool bagnato, int vento){
         pendenza = 0.0;
     }
     double theta = std::atan(pendenza);
-            
+    
     Vector3d dir(std::cos(theta), 0.0, std::sin(theta));
     dir.normalize();
     double v_longit = stato.vel.dot(dir);
