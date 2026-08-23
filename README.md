@@ -3,5 +3,5 @@ Per l'installazione su Windows:
   	Attivare Docker Desktop per i canali  
   	(Personalmente ho sfruttato virtual environment, quindi attivare anchesso)  
   	Nella cartella principale -> docker compose up -d --build  
-		-> cd cshapr  
+		-> cd csharp  
 		-> dotnet run
