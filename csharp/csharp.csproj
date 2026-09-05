@@ -17,6 +17,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
   </PackageReference>
+  <PackageReference Include="MySqlConnector" Version="2.3.5" />
+  <PackageReference Include="Dapper" Version="2.1.35" />
   </ItemGroup>
 
 </Project>
