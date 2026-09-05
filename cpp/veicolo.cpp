@@ -1,11 +1,12 @@
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 #include "funzioni.h"
 
 using namespace Eigen;
+constexpr double pi = 3.14;
+constexpr double g = 9.81;
 
-void Motore::LogicaMotor(Stato& stato, double v, double t){  
+void Motore::LogicaMotor(Stato& stato, double v, double t){
     
     //calcolo RPM
     double circ = 2.0 * pi * stato.ruota;
@@ -13,7 +14,7 @@ void Motore::LogicaMotor(Stato& stato, double v, double t){
     stato.rpm = rotazioni * stato.rapporto[stato.marcia] * stato.differenziale;
     stato.rpm = std::max(stato.rpm, 800.0);
             
-    //cambio marcia e rpm
+    //cambio marcia
     if(stato.rpm > stato.rCambio && stato.marcia < 4){
         stato.marcia++;
     } else if (stato.rpm < 1200 && stato.marcia > 0) {
@@ -28,7 +29,7 @@ void Motore::LogicaMotor(Stato& stato, double v, double t){
     stato.temper += (risc - raff) * t;
 }
 
-Vector3d Fisica::Formule(Stato& stato, double coppia, Vector3d& dir, double v, double theta, double mu, int vento, double frenata){
+Vector3d Fisica::Formule(Stato& stato, double coppia, const Vector3d& dir, double v, double theta, double mu, int vento, double frenata){
 
     double coppiaR = coppia * stato.rapporto[stato.marcia] * stato.differenziale * 0.92;
     double Fmotrice_max = stato.Pmax / std::max(std::abs(v), 5.0);
@@ -42,7 +43,7 @@ Vector3d Fisica::Formule(Stato& stato, double coppia, Vector3d& dir, double v, d
     Vector3d Fattrito = -dir * (f.av * stato.mass * g * std::cos(theta));
     Vector3d ResAerod = -dir * (0.5 * f.rho * f.cd * f.a * vel * std::abs(vel));
     Vector3d Fgravit = -dir * (stato.mass * g * std::sin(theta));
-    double maxFrenata = 8000.0; //in Newton
+    double maxFrenata = 8000.0; //Newton
     Vector3d Ffreno = Vector3d::Zero();
     
     if (std::abs(v) > 0.1) { //se si muove
@@ -58,14 +59,14 @@ Vector3d Fisica::Formule(Stato& stato, double coppia, Vector3d& dir, double v, d
     return Ftot;
 }
 
-Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, double marce[5], double dif, double rm, double rc, double pm){
+Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, const std::array<double, 5>& marce, double dif, double rm, double rc, double pm){
     stato.timer = 0.0;
     stato.pos = startP;
     stato.vel = stato.acc = Vector3d::Zero();
     stato.mass = ton;
     stato.ruota = r;
     stato.rpm = 800.0;
-    std::copy(marce, marce + 5, stato.rapporto);
+    std::copy(marce.begin(), marce.end(), stato.rapporto);
     stato.differenziale = dif;
     stato.rMax = rm, stato.rCambio = rc, stato.Pmax = pm;
     stato.marcia = 0;
@@ -73,22 +74,12 @@ Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, doubl
     c_ = copp;
 }
     
-void Veicolo::update(double t, bool bagnato, int vento){
+void Veicolo::update(double t, double pendenza, bool bagnato, int vento){
 
-    //preliminari per creare un percorso
-    if(bagnato){ mu = f.mu_b; } else{ mu = f.mu; }
-        pendenza = 0.0;
-    if (stato.pos.x() > 150.0 && stato.pos.x() < 800.0) {
-        pendenza = 0.06;
-    } else if (stato.pos.x() > 1500.0 && stato.pos.x() < 2000.0) {
-        pendenza = 0.09;
-    } else if (stato.pos.x() > 2400.0 && stato.pos.x() < 2700.0) {
-        pendenza = -0.05;
-    } else {
-        pendenza = 0.0;
-    }
+    //preliminari
+    if (bagnato) { mu = f.mu_b; } else { mu = f.mu;}
     double theta = std::atan(pendenza);
-    
+            
     Vector3d dir(std::cos(theta), 0.0, std::sin(theta));
     dir.normalize();
     double v_longit = stato.vel.dot(dir);

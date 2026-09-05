@@ -29,7 +29,7 @@ RUN protoc -I proto \
     --plugin=protoc-gen-grpc=`which grpc_cpp_plugin`\
     proto/test.proto
 
-RUN g++ -std=c++17 main.cpp veicolo.cpp grpc_client.cpp test.pb.cc test.grpc.pb.cc \
+RUN g++ -std=c++17 main.cpp veicolo.cpp percorso.cpp grpc_client.cpp test.pb.cc test.grpc.pb.cc \
     -I /usr/include/cppconn -I /usr/local/include/eigen3 -I .\
     -lmysqlcppconn $(pkg-config --cflags --libs grpc++ protobuf) \
     -pthread \

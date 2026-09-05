@@ -14,28 +14,22 @@
 #include "funzioni.h"
 
 using namespace Eigen;
-//quello per gRPC mi sono scordato di dare nome definitivo quando l'ho implemetnato
 using namespace test;
 
 
 Dati DBveicolo(const std::string& nome) {
+
     sql::mysql::MySQL_Driver *driver;
-    driver = sql::mysql::get_mysql_driver_instance();
-    
+    driver = sql::mysql::get_mysql_driver_instance();    
     std::string host = std::getenv("DB_HOST");
     std::string schema = std::getenv("MYSQL_DATABASE");
-   
     std::unique_ptr<sql::Connection> con(driver->connect("tcp://" + host + ":3306", "root", "" ));
     con->setSchema(schema);
-
     std::unique_ptr<sql::Statement> stmt(con->createStatement());
     std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM veicoli WHERE nome = '" + nome + "'"));
-
-    //per sicurezza verifcio che nel database ci sia
     if (!res->next()) throw std::runtime_error("Veicolo " + nome +" non trovato nel DB");
 
     return { res->getString("nome"),
-             //ho fatto cast perchè le prime volte mi stava dando errori, quindi per sic ho impostato anche se dovrebbe esserlo di base come double
              static_cast<double>(res->getDouble("peso")),
              static_cast<double>(res->getDouble("coppia")),
              static_cast<double>(res->getDouble("raggio_ruota")),
@@ -51,24 +45,60 @@ Dati DBveicolo(const std::string& nome) {
     };
 }
 
+DatiPercorso DBpercorso(const std::string& nome) {
+    sql::mysql::MySQL_Driver *driver;
+    driver = sql::mysql::get_mysql_driver_instance();
+    std::string host = std::getenv("DB_HOST");
+    std::string schema = std::getenv("MYSQL_DATABASE");
+    std::unique_ptr<sql::Connection> con(driver->connect("tcp://" + host + ":3306", "root", ""));
+    con->setSchema(schema);
+    std::unique_ptr<sql::Statement> stmt(con->createStatement());
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT id, nome FROM piste WHERE nome = '" + nome + "'"));
+    if (!res->next()) throw std::runtime_error("Percorso " + nome + " non trovato nel DB");
+
+    int Id = res->getInt("id");
+    DatiPercorso dati;
+    dati.nome = res->getString("nome");
+    std::unique_ptr<sql::Statement> stmt2(con->createStatement());
+    std::unique_ptr<sql::ResultSet> res2(stmt2->executeQuery("SELECT * FROM tratti_pista WHERE pista_id = " + std::to_string(Id) + " ORDER BY x_inizio"));
+
+    while (res2->next()) {
+        Tratto tratto;
+        tratto.x_inizio = res2->getDouble("x_inizio");
+        tratto.x_fine = res2->getDouble("x_fine");
+        tratto.pendenza = res2->getDouble("pendenza");
+        dati.tratti.push_back(tratto);
+    }
+    if (dati.tratti.empty()) throw std::runtime_error("Nessun tratto trovato per il percorso " + nome);
+
+    return dati;
+}
+
 class Simulazione {
     private:
-        constexpr double step = 0.5, duration = 90.0;
         double t, t_tot;
         std::unique_ptr<Veicolo> cars;
+        Percorso percorso;
         PythonClient grpcPy;
     
     public:
-        Simulazione(double step, double durata, const Dati& dati) : t(step), t_tot(durata), 
+        static constexpr double step = 0.5;
+        static constexpr double duration = 90.0;
+
+        Simulazione(double step, double durata, const Dati& dati, const DatiPercorso& datiPercorso) : t(step), t_tot(durata), percorso(datiPercorso),
                     grpcPy(grpc::CreateChannel("py_calcolatore:50051", grpc::InsecureChannelCredentials())) {
             std::array<double, 5> marce{dati.m1, dati.m2, dati.m3, dati.m4, dati.m5};
+            
             cars = std::make_unique<Veicolo>(Vector3d::Zero(), dati.peso, dati.raggio_ruota, dati.coppia,
                     marce, dati.differenziale, dati.rapp_max, dati.rapp_cambio, dati.pot_max);
         }
 
         void run(bool bagnato, int vento, std::string& inform) {
+
             while (cars->getStato().timer <= t_tot) {
-                cars->update(t, bagnato, vento);
+                double x = cars->getStato().pos.x();
+                double pendenza = percorso.getPendenza(x);
+                cars->update(t, pendenza, bagnato, vento);
                 const Stato& s = cars->getStato();
                 test::RequestCtoP msg;
                     msg.set_tempo(s.timer);
@@ -90,6 +120,7 @@ class Simulazione {
 class ServiceCtoCImpl final : public ServiceCtoC::Service {
     private:
         Dati dat;
+        DatiPercorso datP;
         int tiposimul;
     public:
         ServiceCtoCImpl() {}
@@ -97,10 +128,12 @@ class ServiceCtoCImpl final : public ServiceCtoC::Service {
         grpc::Status InvioCpp(grpc::ServerContext* context, const RequestCtoC* request, ReplyCtoC* response) override {
             tiposimul = request->go();
             std::string nome = request->car();
+            std::string pista = request->pist();
             std::string inform;
             try{
                 dat = DBveicolo(nome);
-                Simulazione sim(kStep, kTotalDuration, dat);
+                datP = DBpercorso(pista);
+                Simulazione sim(Simulazione::step, Simulazione::duration, dat, datP);
                 switch(tiposimul){
                 case 1: 
                     inform = "Simulazione di una " + nome + " in asciutto e senza vento";

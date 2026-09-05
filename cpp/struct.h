@@ -15,6 +15,17 @@ struct Dati {
     double differenziale, rapp_max, rapp_cambio, pot_max;
 };
 
+struct Tratto {
+    double x_inizio;
+    double x_fine;
+    double pendenza;
+};
+
+struct DatiPercorso {
+    std::string nome;
+    std::vector<Tratto> tratti;
+};
+
 struct Stato {
     double timer;
     Vector3d pos, vel, acc;
