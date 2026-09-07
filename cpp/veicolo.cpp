@@ -34,14 +34,10 @@ Vector3d Fisica::Formule(Stato& stato, double coppia, const Vector3d& dir, doubl
     double coppiaR = coppia * stato.rapporto[stato.marcia] * stato.differenziale * 0.92;
     double Fmotrice_max = stato.Pmax / std::max(std::abs(v), 5.0);
     double trazione = coppiaR / stato.ruota;
-    switch(vento){
-        case 1: vel = v - 40.0; break; //vento in coda
-        case 2: vel = v + 40.0; break; //vento frontale
-        default: vel = v; break;
-    }
+    double v_ventoso = v + (static_cast<double>(vento) / 3.6);
     Vector3d Fmotrice = dir * std::min(trazione, Fmotrice_max);
     Vector3d Fattrito = -dir * (f.av * stato.mass * g * std::cos(theta));
-    Vector3d ResAerod = -dir * (0.5 * f.rho * f.cd * f.a * vel * std::abs(vel));
+    Vector3d ResAerod = -dir * (0.5 * f.rho * f.cd * f.a * v_ventoso * std::abs(v_ventoso));
     Vector3d Fgravit = -dir * (stato.mass * g * std::sin(theta));
     double maxFrenata = 8000.0; //Newton
     Vector3d Ffreno = Vector3d::Zero();
@@ -84,17 +80,19 @@ void Veicolo::update(double t, double pendenza, bool bagnato, int vento){
     dir.normalize();
     double v_longit = stato.vel.dot(dir);
 
-    double pedaleAcceleratore = 1.0;
-    double frenata = 0.0;
+    double pedal = 1.0, frenata = 0.0;
 
     //se discesa oltre 27.7 ms si frena
     double v_attuale = stato.vel.norm();
     if (pendenza < 0 && v_attuale > 27.7) {
-        pedaleAcceleratore = 0.0;
-        frenata = 0.6;//freno 60%
+        pedal = 0.0;
+        double limit = v_attuale - 27.7;
+        frenata = std::min(1.0, 0.3 + limit / 10.0);
+    } else {
+        frenata = 0.0;
     }
     double ridCoppia = std::max(0.3, std::min(stato.rpm / 2500.0, 1.0));
-    double c = c_ * ridCoppia * pedaleAcceleratore;
+    double c = c_ * ridCoppia * pedal;
 
     Vector3d Ftot(fisica.Formule(stato, c, dir, v_longit, theta, mu, vento, frenata));
 

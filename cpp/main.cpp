@@ -134,25 +134,20 @@ class ServiceCtoCImpl final : public ServiceCtoC::Service {
                 dat = DBveicolo(nome);
                 datP = DBpercorso(pista);
                 Simulazione sim(Simulazione::step, Simulazione::duration, dat, datP);
-                switch(tiposimul){
-                case 1: 
-                    inform = "Simulazione di una " + nome + " in asciutto e senza vento";
-                    sim.run(false, 0, inform);
-                    response->set_success(true);
-                    break;
-                case 2: 
-                    inform = "Simulazione di una " + nome + " in asciutto con vento frontale";
-                    sim.run(false, 2, inform);
-                    response->set_success(true);
-                    break;
-                case 3: 
-                    inform = "Simulazione di una " + nome + " sul bagnato e senza vento";
-                    sim.run(true, 0, inform);
-                    response->set_success(true);
-                    break;
-                default:
-                    response->set_success(false);
-                }
+                int mant = tiposimul / 1000;
+                int vent = tiposimul % 1000;
+                
+                bool bagnat = false;
+                inform = "Simulazione di una " + nome;
+                if (mant == 1) { inform += " in asciutto"; bagnat = false;} 
+                else { inform += " sul bagnato"; bagnat = true;}
+
+                int intensita = vent;
+                if (intensita == 0) { inform += " senza vento";}
+                else { inform += " con vento frontale " + std::to_string(intensita) + " km/h";}
+                
+                sim.run(bagnat, intensita, inform);
+                response->set_success(true);
                 return grpc::Status::OK;
 
             } catch (const std::exception& e) {
