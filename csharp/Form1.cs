@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Grpc.Core;
 using Grpc.Net.Client;
-using System.Data.SqlClient;
 using MySqlConnector;
 using Dapper;
 using Test;
@@ -17,16 +17,7 @@ public record Car(string Id, string Nome, string ImagePath);
 public record CarDb(string Nome);
 public record Track(string Id, string Nome);
 public record TrackDb(string Nome);
-public record Weather(double ID, string Description, Color ButtonColor);
-
-public class PtoCService : ServicePtoC.ServicePtoCBase {
-    public override Task<ReplyCtoC> InviaReport(ReportData request, ServerCallContext context) {
-        Form1.Istanza?.Invoke(() => {
-            Form1.ShowReport(request);
-        });
-        return Task.FromResult(new ReplyCtoC { Success = true });
-    }
-}
+public record Weather(int ID, string Description);
 
 public partial class Form1 : Form {
 
@@ -35,18 +26,25 @@ public partial class Form1 : Form {
     private FlowLayoutPanel? _autoPanel = null;
     private FlowLayoutPanel? _pistaPanel = null;
     private FlowLayoutPanel? _meteoPanel = null;
+    private FlowLayoutPanel? _mantoPanel = null;
+    private FlowLayoutPanel? _ventoPanel = null;
     private string _automobile = string.Empty;
     private string _pista = string.Empty;
     private Button? _autoButton = null;
     private Button? _Reset = null;
-
+    private Weather? _manto = null;
+    private double _vento = 0;
+    private NumericUpDown? inputVento = null;
 
     public Form1() {
         InitializeComponent();
         Istanza = this;
-        this.Load += async(s, e) => {
-          SetupUI();
-          StartGrpcServer();  
+        this.Load += async (s, e) => {
+            SetupUI();
+            await RiempiCar();
+            await RiempiPiste();
+            RiempiMeteo();
+            StartGrpcServer();  
         };
     }
 
@@ -65,7 +63,6 @@ public partial class Form1 : Form {
     }
 
     private void SetupUI() {
-
         this.Text = "Simulatore di Guida";
         this.Size = new Size(1000, 700);
         this.StartPosition = FormStartPosition.CenterScreen;
@@ -76,11 +73,11 @@ public partial class Form1 : Form {
             ColumnCount = 1,
             Padding = new Padding(30)
         };
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Label per le auto, pista, meteo e poi reset
         mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
         mainLayout.Controls.Add(Titolo("SELEZIONE AUTOMOBILE"), 0, 0);
         _autoPanel = new FlowLayoutPanel {
             Dock = DockStyle.Fill,
@@ -98,12 +95,13 @@ public partial class Form1 : Form {
         mainLayout.Controls.Add(_pistaPanel, 0, 3);
 
         mainLayout.Controls.Add(Titolo("SELEZIONE CONDIZIONE METEO "), 0, 5);
+
         _meteoPanel = new FlowLayoutPanel {
             Dock = DockStyle.Fill,
             AutoScroll = true,
             WrapContents = true
         };
-        mainLayout.Controls.Add(_meteoPanel, 0, 6);
+        mainLayout.Controls.Add(_meteoPanel, 0, 7);
 
         FlowLayoutPanel bottomPanel = new FlowLayoutPanel {
             Dock = DockStyle.Fill,
@@ -117,15 +115,11 @@ public partial class Form1 : Form {
             Padding = new Padding(5),
             Enabled = false
         };
-        _Reset.Click += async (s, e) => Resett();
+        _Reset.Click += (s, e) => Resett();
         bottomPanel.Controls.Add(_Reset);
         mainLayout.Controls.Add(bottomPanel, 0, 8);
 
         this.Controls.Add(mainLayout);
-
-        RiempiCar();
-        RiempiPiste();
-        RiempiMeteo();
     }
 
     private Label Titolo(string title) {
@@ -138,11 +132,12 @@ public partial class Form1 : Form {
     }
 
     private async Task RiempiCar() {
+        if (_autoPanel == null) return;
 
         string connectionString = "Server=localhost;Port=3306;Database=simulatore;User ID=root;Password=;";
         using var connection = new MySqlConnection(connectionString);
         await connection.OpenAsync();
-        string query = "SELECT nome FROM veicoli";
+        string query = "SELECT nome FROM veicoli LIMIT 10";
         var veicoliDb = await connection.QueryAsync<CarDb>(query);
         var cars = veicoliDb.Select(v => new Car(
             Id: v.Nome,
@@ -158,7 +153,7 @@ public partial class Form1 : Form {
                 Text = car.Nome,
                 TextImageRelation = TextImageRelation.ImageAboveText,
                 TextAlign = ContentAlignment.BottomCenter,
-                Image = new Bitmap(Image.FromFile(car.ImagePath), new Size(100, 70)),
+                Image = File.Exists(car.ImagePath) ? new Bitmap(Image.FromFile(car.ImagePath), new Size(100, 70)) : null,
                 ImageAlign = ContentAlignment.TopCenter,
                 BackColor = Color.LightGray,
                 Margin = new Padding(5),
@@ -168,13 +163,14 @@ public partial class Form1 : Form {
             _autoPanel.Controls.Add(btn);
         }
     }
-    
+
     private async Task RiempiPiste() {
+        if (_pistaPanel == null) return;
 
         string connectionString = "Server=localhost;Port=3306;Database=simulatore;User ID=root;Password=;";
         using var connection = new MySqlConnection(connectionString);
         await connection.OpenAsync();
-        string query = "SELECT nome FROM piste";
+        string query = "SELECT nome FROM piste LIMIT 5";
         var pistaDb = await connection.QueryAsync<TrackDb>(query);
         var tracks = pistaDb.Select(v => new Track(
             Id: v.Nome,
@@ -197,33 +193,81 @@ public partial class Form1 : Form {
     }
 
     private void RiempiMeteo() {
-        var Conditions = new List<Weather> {
-            new(1.0, "Asciutto, Senza Vento", Color.LightYellow),
-            new(2.0, "Asciutto, Vento 40 km/h", Color.LightYellow),
-            new(3.0, "Bagnato, Senza Vento", Color.LightYellow)
-        };
+        if (_meteoPanel == null) return;
 
         _meteoPanel.Controls.Clear();
+        _meteoPanel.FlowDirection = FlowDirection.TopDown;
 
-        foreach (var w in Conditions) {
+        _meteoPanel.Controls.Add(new Label { 
+            Text = "Velocità Vento", 
+            AutoSize = true, 
+            Font = new Font(this.Font, FontStyle.Italic),
+            Margin = new Padding(0, 10, 0, 5)
+        });
+        inputVento = new NumericUpDown {
+            Minimum = 0,
+            Maximum = 100,
+            Value = 0,
+            Increment = 5,
+            Size = new Size(120, 40),
+            Font = new Font("Segoe UI", 10)
+        };
+        inputVento.ValueChanged += async (s, e) => {
+            _vento = (double)inputVento.Value;
+            await VerificaEInviaMeteo();
+        };
+        _meteoPanel.Controls.Add(inputVento);
+        
+        _meteoPanel.Controls.Add(new Label { 
+            Text = "\nManto Stradale", 
+            AutoSize = true, 
+            Font = new Font(this.Font, FontStyle.Italic) 
+        });
+        var conditionsManto = new List<Weather> { new(1000, "Asciutto"), new(2000, "Bagnato")};
+        _mantoPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
+        foreach (var w in conditionsManto) {
             var btn = new Button {
-                Size = new Size(180, 50),
+                Size = new Size(120, 40),
                 Text = w.Description,
-                BackColor = w.ButtonColor,
-                Margin = new Padding(8),
+                BackColor = Color.LightYellow,
+                Margin = new Padding(4),
                 Tag = w
             };
+            btn.Click += async (s, e) => await SelezionaManto(btn, w);
+            _mantoPanel.Controls.Add(btn);
+        }
+        _meteoPanel.Controls.Add(_mantoPanel);
+    }
 
-            btn.Click += async (s, e) => await meteoselezione(w);
-            _meteoPanel.Controls.Add(btn);
+    private async Task SelezionaManto(Button btn, Weather w) {
+        _manto = w;
+        if (_mantoPanel != null) {
+            foreach (Control c in _mantoPanel.Controls) {
+                c.BackColor = Color.LightYellow;
+            }
+        }
+        btn.BackColor = Color.LightGreen;
+        await VerificaEInviaMeteo();
+    }
+
+    private async Task VerificaEInviaMeteo() {
+        if (string.IsNullOrEmpty(_automobile) || string.IsNullOrEmpty(_pista)) {
+            MessageBox.Show("Selezionare prima il veicolo e la pista", "Attenzione", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (_manto != null) {
+            double meteoo = _manto.ID + _vento;
+            await Invio(meteoo, null, null);
         }
     }
 
     private async Task carselezione(Button btn, Car car) {
         _automobile = car.Id;
         _autoButton = btn;
-        foreach (Control c in _autoPanel.Controls) {
-            c.Enabled = false;
+        if (_autoPanel != null) {
+            foreach (Control c in _autoPanel.Controls) {
+                c.Enabled = false;
+            }
         }
         btn.Enabled = true;
         btn.BackColor = Color.LightGreen;
@@ -232,36 +276,30 @@ public partial class Form1 : Form {
 
     private async Task pistaSelezione(Button btn, Track track) {
         _pista = track.Id;
-        foreach (Control c in _pistaPanel.Controls) {
-            c.Enabled = false;
+        if (_pistaPanel != null) {
+            foreach (Control c in _pistaPanel.Controls) {
+                c.Enabled = false;
+            }
         }
         btn.Enabled = true;
         btn.BackColor = Color.LightGreen;
         await Invio(0.0, _pista, null);
     }
 
-    private async Task meteoselezione(Weather weather) {
-        if (string.IsNullOrEmpty(_automobile) || string.IsNullOrEmpty(_pista)) {
-            MessageBox.Show("Selezionare prima il veicolo e la pista", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        await Invio(weather.ID, null, null);
-    }
-
     private async Task Invio(double condizion, string? pist, string? automob) {
-        if(!string.IsNullOrEmpty(automob)) {
+        if (!string.IsNullOrEmpty(automob)) {
             _automobile = automob;
         }
-        if(!string.IsNullOrEmpty(pist)) {
+        if (!string.IsNullOrEmpty(pist)) {
             _pista = pist;
         }
         if (condizion != 0.0 && !string.IsNullOrEmpty(_automobile) && !string.IsNullOrEmpty(_pista)) {
             try {
                 using var chan = GrpcChannel.ForAddress("http://localhost:50052");
                 var client = new ServiceCtoC.ServiceCtoCClient(chan);
-                var reply = await client.InvioCppAsync(new RequestCtoC { Go = condizion, Car = _automobile, Pist = _pista});
-                _Reset.Enabled = true;
-            } catch (Exception e){
+                var reply = await client.InvioCppAsync(new RequestCtoC { Go = condizion, Car = _automobile, Pist = _pista });
+                if (_Reset != null) _Reset.Enabled = true;
+            } catch (Exception e) {
                 MessageBox.Show("Errore di connessione: " + e.Message);
             }
         }
@@ -270,36 +308,36 @@ public partial class Form1 : Form {
     private void Resett() {
         _automobile = string.Empty;
         _autoButton = null;
-        foreach (Control c in _autoPanel.Controls) {
-            c.Enabled = true;
-            c.BackColor = Color.LightGray;
-        }
+        if (_autoPanel != null) {
+            foreach (Control c in _autoPanel.Controls) {c.Enabled = true;c.BackColor = Color.LightGray;}}
         _pista = string.Empty;
-        foreach (Control c in _pistaPanel.Controls) {
-            c.Enabled = true;
-            c.BackColor = Color.Bisque;
-        }
-        _Reset.Enabled = false;
+        if (_pistaPanel != null) {
+            foreach (Control c in _pistaPanel.Controls) {c.Enabled = true; c.BackColor = Color.Bisque;}}
+        _manto = null;
+        _vento = 0;
+        inputVento.Value = 0;
+        if (_mantoPanel != null) { foreach (Control c in _mantoPanel.Controls) c.BackColor = Color.LightYellow;}
+        if (_ventoPanel != null) { foreach (Control c in _ventoPanel.Controls) c.BackColor = Color.LightYellow;}
+        if (_Reset != null) _Reset.Enabled = false;
     }
 
     public static void ShowReport(ReportData request) {
-        
         Form risultat = new Form {
             Text = $"Risultati simulazione {request.Inform}",
-            Size = new Size(950, 650),
+            Size = new Size(1000, 700),
             StartPosition = FormStartPosition.CenterScreen
         };
 
         Label DatiRis = new Label {
-
             Dock = DockStyle.Top,
-            Height = 150,
+            Height = 200,
             Padding = new Padding(15),
             Font = new Font("Segoe UI", 10, FontStyle.Regular),
-            Text = $"Risurlati {request.Inform} dopo 90 sec.\n\n" +
+            Text = $"Risultati {request.Inform} dopo 90 sec.\n\n" +
                    $"|Distanza totale:    {request.Dist:F2} m    |  Velocità Max: {request.VMax:F2} km/h\n" +
                    $"|Velocità Media:    {request.VMedia:F2} km/h |  RPM Max: {request.RpmMax}\n" +
-                   $"|Temperatura Media: {request.TMedia:F2} °C | Tempo da 0 a 100 km/h: {request.TAccela}"
+                   $"|Temperatura Media: {request.TMedia:F2} °C   | Tempo da 0 a 100 km/h: {request.TAccela} s\n" +
+                   $"|Distanza Frenata: {request.DistanzaFrenata:F2} m"
         };
 
         FlowLayoutPanel pannel = new FlowLayoutPanel {
@@ -309,21 +347,10 @@ public partial class Form1 : Form {
             Padding = new Padding(4)
         };
 
-        PictureBox graf1 = new PictureBox {
-            Size = new Size(320, 320),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-        };
-        PictureBox graf2 = new PictureBox {
-            Size = new Size(320, 320),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-        };
-        PictureBox graf3 = new PictureBox {
-            Size = new Size(320, 320),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-        };
+        PictureBox graf1 = CreatePictureBox();
+        PictureBox graf2 = CreatePictureBox();
+        PictureBox graf3 = CreatePictureBox();
+
         if (!request.ImgData.IsEmpty) {
             using var img = new MemoryStream(request.ImgData.ToByteArray());
             graf1.Image = new Bitmap(img);
@@ -345,4 +372,11 @@ public partial class Form1 : Form {
         risultat.ShowDialog();
     }
 
+    private static PictureBox CreatePictureBox() {
+        return new PictureBox {
+            Size = new Size(500, 500),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+        };
+    }
 }
