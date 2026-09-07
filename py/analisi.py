@@ -1,4 +1,4 @@
-import numpy as np            # uso questi perchè sono più efficenti 
+import numpy as np
 import matplotlib.pyplot as plt
 import io
 import logging
@@ -17,12 +17,15 @@ class Telemetria:
             temp = np.array(car_dict['temp'])
             marce = np.array(car_dict['marcia'], dtype=int)
             
-            #velocità
             v_ = v * 3.6
             v_media = np.mean(v_)
             v_max = np.max(v_)
-            
-            #accelerazione
+
+            tempo_0_100 = None
+            tmp = np.where(v_ >= 100.0)[0]
+            if tmp.size > 0:
+                tempo_0_100 = t[tmp[0]]
+
             dv = np.diff(v)
             dt = np.diff(t)
             a = np.divide(dv, dt, out=np.zeros_like(dv))
@@ -33,6 +36,16 @@ class Telemetria:
             rpm_max = np.max(rpm)
             marcia_top = np.bincount(marce).argmax()
 
+            i_freno = np.where(a < -0.5)[0]
+            if i_freno.size > 0:
+                iniziofren = i_freno[0]
+                finefren = iniziofren
+                while (finefren + 1 < len(v) and v[finefren + 1] < v[finefren]):
+                    finefren += 1
+                dist_fren = (x[finefren] - x[iniziofren])
+            else:
+                dist_fren = None
+
             #traiettria
             fig1, ax1 = plt.subplots(figsize=(10, 7))
             ax1.plot(x, z, label='Traiettoria', color='blue', linewidth=2)
@@ -42,8 +55,9 @@ class Telemetria:
             ax1.set_ylabel('Z (m)')
             ax1.set_title('Traiettoria del veicolo')
             ax1.legend()
+            ax1.set_ylim(bottom=-50, top=(z[-1] + 50))
             ax1.grid(True, linestyle='--', alpha=0.6)
-            buf1 = io.BytesIO() #per salvare le immagini
+            buf1 = io.BytesIO()
             fig1.savefig(buf1, format='png')
             plt.close(fig1)
 
@@ -58,11 +72,33 @@ class Telemetria:
             fig2.savefig(buf2, format='png')
             plt.close(fig2)
 
+            #giri del motore
+            fig3, ax3 = plt.subplots(figsize=(10, 7))
+            ax3.plot(t, rpm, label='Giri Motore', color='red', linewidth=1.5)
+            ax3.set_xlabel('Tempo')
+            ax3.set_ylabel('Giri al Minuto')
+            ax3.set_title('RPM')
+            ax3.set_ylim(bottom=0, top=max(rpm_max * 1.1, 7000))
+            ax3.grid(True, linestyle='--', alpha=0.5)
+            buf3 = io.BytesIO()
+            fig3.savefig(buf3, format='png')
+            plt.close(fig3)
+
+
+
             return {
-                "v_media": v_media, "v_max": v_max, "a_max": a_max,
-                "temp_media": temp_media, "rpm_max": int(rpm_max),
-                "marcia": int(marcia_top), "dist": x[-1] if x.size > 0 else 0,
-                "img1": buf1.getvalue(), "img2": buf2.getvalue()
+                "v_media": v_media,
+                "v_max": v_max,
+                "a_max": a_max,
+                "t_accela": tempo_0_100,
+                "t_media": temp_media,
+                "rpm_max": int(rpm_max),
+                "marcia": int(marcia_top),
+                "dist": x[-1] if x.size > 0 else 0,
+                "img_data": buf1.getvalue(),
+                "img_data2": buf2.getvalue(),
+                "img_data3": buf3.getvalue(),
+                "distanza_frenata": dist_fren
             }
 
         except Exception as e:
