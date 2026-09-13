@@ -41,8 +41,8 @@ public partial class Form1 : Form {
         Istanza = this;
         this.Load += async (s, e) => {
             SetupUI();
-            await RiempiCar();
-            await RiempiPiste();
+            await DBAutomob();
+            await DBPista();
             RiempiMeteo();
             StartGrpcServer();  
         };
@@ -131,7 +131,7 @@ public partial class Form1 : Form {
         };
     }
 
-    private async Task RiempiCar() {
+    private async Task DBAutomob() {
         if (_autoPanel == null) return;
 
         string connectionString = "Server=localhost;Port=3306;Database=simulatore;User ID=root;Password=;";
@@ -164,7 +164,7 @@ public partial class Form1 : Form {
         }
     }
 
-    private async Task RiempiPiste() {
+    private async Task DBPista() {
         if (_pistaPanel == null) return;
 
         string connectionString = "Server=localhost;Port=3306;Database=simulatore;User ID=root;Password=;";
@@ -214,7 +214,7 @@ public partial class Form1 : Form {
         };
         inputVento.ValueChanged += async (s, e) => {
             _vento = (double)inputVento.Value;
-            await VerificaEInviaMeteo();
+            await verifMeteo();
         };
         _meteoPanel.Controls.Add(inputVento);
         
@@ -233,13 +233,13 @@ public partial class Form1 : Form {
                 Margin = new Padding(4),
                 Tag = w
             };
-            btn.Click += async (s, e) => await SelezionaManto(btn, w);
+            btn.Click += async (s, e) => await selectManto(btn, w);
             _mantoPanel.Controls.Add(btn);
         }
         _meteoPanel.Controls.Add(_mantoPanel);
     }
 
-    private async Task SelezionaManto(Button btn, Weather w) {
+    private async Task selectManto(Button btn, Weather w) {
         _manto = w;
         if (_mantoPanel != null) {
             foreach (Control c in _mantoPanel.Controls) {
@@ -247,10 +247,10 @@ public partial class Form1 : Form {
             }
         }
         btn.BackColor = Color.LightGreen;
-        await VerificaEInviaMeteo();
+        await verifMeteo();
     }
 
-    private async Task VerificaEInviaMeteo() {
+    private async Task verifMeteo() {
         if (string.IsNullOrEmpty(_automobile) || string.IsNullOrEmpty(_pista)) {
             MessageBox.Show("Selezionare prima il veicolo e la pista", "Attenzione", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
