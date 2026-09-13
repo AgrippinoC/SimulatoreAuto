@@ -28,7 +28,6 @@ class Percorso {
 };
 
 class Veicolo {
-    //composizione
     private:
         Stato stato;
         Coefficenti f;
