@@ -17,25 +17,31 @@ class Telemetria:
             temp = np.array(car_dict['temp'])
             marce = np.array(car_dict['marcia'], dtype=int)
             
+            #calcolo velocità
             v_ = v * 3.6
             v_media = np.mean(v_)
             v_max = np.max(v_)
 
+            #tempistica
             tempo_0_100 = None
             tmp = np.where(v_ >= 100.0)[0]
             if tmp.size > 0:
                 tempo_0_100 = t[tmp[0]]
 
+            #accelerazione
             dv = np.diff(v)
             dt = np.diff(t)
             a = np.divide(dv, dt, out=np.zeros_like(dv))
             a_max = np.max(a)
 
+            #temperatura
             temp_media = np.mean(temp)
 
+            #giri mottore
             rpm_max = np.max(rpm)
             marcia_top = np.bincount(marce).argmax()
 
+            #frenata
             i_freno = np.where(a < -0.5)[0]
             if i_freno.size > 0:
                 iniziofren = i_freno[0]
@@ -83,7 +89,6 @@ class Telemetria:
             buf3 = io.BytesIO()
             fig3.savefig(buf3, format='png')
             plt.close(fig3)
-
 
 
             return {
