@@ -10,7 +10,7 @@ class ServiceCtoP(test_pb2_grpc.ServiceCtoPServicer):
         self.reset_data()
 
     def reset_data(self):
-        self.data = { 'tempo': [], 'vel': [], 'marcia': [], 'rpm': [], 'temp': [], 'x': [], 'y': [], 'z': [] }
+        self.data = { 'tempo': [], 'vel': [], 'marcia': [], 'rpm': [], 'temp': [], 'x': [], 'y': [], 'z': [], 'consumo': [] }
         self.descr = ""
 
     def InvioPy(self, request, context):
@@ -23,6 +23,7 @@ class ServiceCtoP(test_pb2_grpc.ServiceCtoPServicer):
         self.data['marcia'].append(request.marcia)
         self.data['rpm'].append(request.rpm)
         self.data['temp'].append(request.temperatura)
+        self.data['consumo'].append(request.consumo)
         self.descr = request.inform
         return test_pb2.ReplyCtoP(rep=True)
 

@@ -16,6 +16,7 @@ class Telemetria:
             rpm = np.array(car_dict['rpm'])
             temp = np.array(car_dict['temp'])
             marce = np.array(car_dict['marcia'], dtype=int)
+            consumi = np.array(car_dict['consumo'])
             
             #calcolo velocità
             v_ = v * 3.6
@@ -51,6 +52,17 @@ class Telemetria:
                 dist_fren = (x[finefren] - x[iniziofren])
             else:
                 dist_fren = None
+
+            #consumo
+            dist = x[-1] / 1000.0 # da metri a km
+            logging.info(f"distanza: {dist}")
+            consumo_totale = consumi[-1] # L'ultimo valore accumulato
+            logging.info(f"consumo totale: {consumo_totale}")
+            # Calcolo litri per 100 km (evitando divisioni per zero)
+            if dist > 0:
+                consumo_medio_100km = (consumo_totale / dist) * 100.0
+            else:
+                consumo_medio_100km = 0.0
 
             #traiettria
             fig1, ax1 = plt.subplots(figsize=(10, 7))
@@ -90,7 +102,6 @@ class Telemetria:
             fig3.savefig(buf3, format='png')
             plt.close(fig3)
 
-
             return {
                 "v_media": v_media,
                 "v_max": v_max,
@@ -99,11 +110,12 @@ class Telemetria:
                 "t_media": temp_media,
                 "rpm_max": int(rpm_max),
                 "marcia": int(marcia_top),
-                "dist": x[-1] if x.size > 0 else 0,
+                "dist": dist,
                 "img_data": buf1.getvalue(),
                 "img_data2": buf2.getvalue(),
                 "img_data3": buf3.getvalue(),
-                "distanza_frenata": dist_fren
+                "dist_frenata": dist_fren,
+                "consumo_med": consumo_medio_100km
             }
 
         except Exception as e:
