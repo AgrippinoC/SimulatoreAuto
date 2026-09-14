@@ -324,20 +324,20 @@ public partial class Form1 : Form {
     public static void ShowReport(ReportData request) {
         Form risultat = new Form {
             Text = $"Risultati simulazione {request.Inform}",
-            Size = new Size(1000, 700),
+            Size = new Size(1200, 800),
             StartPosition = FormStartPosition.CenterScreen
         };
 
         Label DatiRis = new Label {
             Dock = DockStyle.Top,
-            Height = 200,
+            Height = 300,
             Padding = new Padding(15),
-            Font = new Font("Segoe UI", 10, FontStyle.Regular),
+            Font = new Font("Segoe UI", 11, FontStyle.Regular),
             Text = $"Risultati {request.Inform} dopo 90 sec.\n\n" +
-                   $"|Distanza totale:    {request.Dist:F2} m    |  Velocità Max: {request.VMax:F2} km/h\n" +
-                   $"|Velocità Media:    {request.VMedia:F2} km/h |  RPM Max: {request.RpmMax}\n" +
-                   $"|Temperatura Media: {request.TMedia:F2} °C   | Tempo da 0 a 100 km/h: {request.TAccela} s\n" +
-                   $"|Distanza Frenata: {request.DistanzaFrenata:F2} m"
+                   $"|Distanza totale: {request.Dist:F2} km\n|Velocità Max: {request.VMax:F2} km/h\n" +
+                   $"|Velocità Media: {request.VMedia:F2} km/h\n|RPM Max: {request.RpmMax}\n" +
+                   $"|Temperatura Media: {request.TMedia:F2} °C\n|Tempo da 0 a 100 km/h: {request.TAccela} s\n" +
+                   $"|Distanza Frenata: {request.DistFrenata:F2} m\n|Consumo Medio: {request.ConsumoMed:F2} L/100km",
         };
 
         FlowLayoutPanel pannel = new FlowLayoutPanel {
@@ -354,14 +354,20 @@ public partial class Form1 : Form {
         if (!request.ImgData.IsEmpty) {
             using var img = new MemoryStream(request.ImgData.ToByteArray());
             graf1.Image = new Bitmap(img);
+            graf1.Size = new Size(600, 420);
+            graf1.SizeMode = PictureBoxSizeMode.StretchImage;
         }
         if (!request.ImgData2.IsEmpty) {
             using var ms = new MemoryStream(request.ImgData2.ToByteArray());
             graf2.Image = new Bitmap(ms);
+            graf2.Size = new Size(600, 420);
+            graf2.SizeMode = PictureBoxSizeMode.StretchImage;
         }
         if (!request.ImgData3.IsEmpty) {
             using var gm = new MemoryStream(request.ImgData3.ToByteArray());
             graf3.Image = new Bitmap(gm);
+            graf3.Size = new Size(600, 420);
+            graf3.SizeMode = PictureBoxSizeMode.StretchImage;
         }
 
         pannel.Controls.Add(graf1);
