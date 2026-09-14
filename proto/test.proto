@@ -17,6 +17,7 @@ message RequestCtoP {
   double rpm = 7;
   double temperatura = 8;
   string inform = 9;
+  double consumo = 10;
 }
 
 message Empty {}
@@ -32,6 +33,7 @@ service ServiceCtoC {
 message RequestCtoC {
   double go = 1;
   string car = 2;
+  string pist = 3;
 }
 
 message ReplyCtoC {
@@ -42,13 +44,17 @@ message ReportData {
   double v_media = 1;
   double v_max = 2;
   double a_max = 3;
-  double t_media = 4;
-  int32 rpm_max = 5;
-  int32 marcia = 6;
-  double dist = 7;
-  bytes img_data = 8;
-  bytes img_data2 = 9;
-  string inform = 10;
+  double t_accela = 4;
+  double t_media = 5;
+  int32 rpm_max = 6;
+  int32 marcia = 7;
+  double dist = 8;
+  bytes img_data = 9;
+  bytes img_data2 = 10;
+  bytes img_data3 = 11;
+  string inform = 12;
+  double dist_frenata = 13;
+  double consumo_med = 14;
 }
 
 service ServicePtoC {
