@@ -41,7 +41,8 @@ Dati DBveicolo(const std::string& nome) {
              static_cast<double>(res->getDouble("differenziale")),
              static_cast<double>(res->getDouble("rapp_max")),
              static_cast<double>(res->getDouble("rapp_cambio")),
-             static_cast<double>(res->getDouble("pot_max"))
+             static_cast<double>(res->getDouble("pot_max")),
+             static_cast<double>(res->getDouble("consuP")),
     };
 }
 
@@ -90,7 +91,7 @@ class Simulazione {
             std::array<double, 5> marce{dati.m1, dati.m2, dati.m3, dati.m4, dati.m5};
             
             cars = std::make_unique<Veicolo>(Vector3d::Zero(), dati.peso, dati.raggio_ruota, dati.coppia,
-                    marce, dati.differenziale, dati.rapp_max, dati.rapp_cambio, dati.pot_max);
+                    marce, dati.differenziale, dati.rapp_max, dati.rapp_cambio, dati.pot_max, dati.consuP);
         }
 
         void run(bool bagnato, int vento, std::string& inform) {
@@ -110,6 +111,7 @@ class Simulazione {
                     msg.set_rpm(s.rpm);
                     msg.set_temperatura(s.temper);
                     msg.set_inform(inform);
+                    msg.set_consumo(s.consumoL);
                 grpcPy.InviaPython(msg);
             }
             test::Empty ok;

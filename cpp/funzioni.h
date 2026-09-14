@@ -8,7 +8,7 @@ class Motore {
     private:
         Coefficenti f;
     public:
-        void LogicaMotor(Stato& stato, double v, double t);
+        void LogicaMotor(Stato& stato, double v, double t, double pedal, double consum);
 };
 
 class Fisica {
@@ -36,7 +36,8 @@ class Veicolo {
         double c_, mu;
 
     public:
-        Veicolo(const Vector3d startP, double ton, double r, double copp, const std::array<double, 5>& marce, double dif, double rm, double rc, double pm);
+        Veicolo(const Vector3d startP, double ton, double r, double copp, const std::array<double, 5>& marce, 
+            double dif, double rm, double rc, double pm, double consuP);
         void update(double t, double pendenza, bool bagnato, int vento);
         const Stato& getStato() const { return stato; };
 };

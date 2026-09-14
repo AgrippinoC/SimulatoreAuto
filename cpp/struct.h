@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include <string>
+#include <vector>
 
 using namespace Eigen;
 
@@ -13,6 +14,7 @@ struct Dati {
     double raggio_ruota;
     double m1, m2, m3, m4, m5;
     double differenziale, rapp_max, rapp_cambio, pot_max;
+    double consuP;
 };
 
 struct Tratto {
@@ -35,6 +37,7 @@ struct Stato {
     int marcia;
     double temper;
     double angolo, velAng;
+    double consumoL = 0, consuP; //consumo totale e fattore a pieno carico
 };
 
 struct Coefficenti {

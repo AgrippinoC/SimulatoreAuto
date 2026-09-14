@@ -6,7 +6,7 @@ using namespace Eigen;
 constexpr double pi = 3.14;
 constexpr double g = 9.81;
 
-void Motore::LogicaMotor(Stato& stato, double v, double t){
+void Motore::LogicaMotor(Stato& stato, double v, double t, double pedal, double consum){
     
     //calcolo RPM
     double circ = 2.0 * pi * stato.ruota;
@@ -27,6 +27,19 @@ void Motore::LogicaMotor(Stato& stato, double v, double t){
     double risc = (stato.rpm / stato.rMax) * 0.5;
     double raff = (stato.temper - f.ambiente) * 0.02;
     stato.temper += (risc - raff) * t;
+
+    //temporaneo
+    stato.consumoL += (0.0002 + (stato.rpm / stato.rMax) * pedal * consum) * t; // litri al secondo * tempo
+
+
+    /*
+    0.0002 (Consumo al minimo / Idle consumption):
+    Rappresenta il consumo base di carburante (in litri al secondo) a motore acceso anche senza premere l'acceleratore
+
+    0.0030 (Consumo a pieno carico / Full load factor) (0,18 l/min)
+
+    Rappresenta il consumo aggiuntivo massimo quando il pedale è premuto al massimo ($pedal = 1.0$) e il motore raggiunge i giri massimi 
+ */
 }
 
 Vector3d Fisica::Formule(Stato& stato, double coppia, const Vector3d& dir, double v, double theta, double mu, int vento, double frenata){
@@ -55,7 +68,7 @@ Vector3d Fisica::Formule(Stato& stato, double coppia, const Vector3d& dir, doubl
     return Ftot;
 }
 
-Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, const std::array<double, 5>& marce, double dif, double rm, double rc, double pm){
+Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, const std::array<double, 5>& marce, double dif, double rm, double rc, double pm, double consuP){
     stato.timer = 0.0;
     stato.pos = startP;
     stato.vel = stato.acc = Vector3d::Zero();
@@ -68,6 +81,7 @@ Veicolo::Veicolo(const Vector3d startP, double ton, double r, double copp, const
     stato.marcia = 0;
     stato.temper = f.ambiente;
     c_ = copp;
+    stato.consuP = consuP;
 }
     
 void Veicolo::update(double t, double pendenza, bool bagnato, int vento){
@@ -107,6 +121,6 @@ void Veicolo::update(double t, double pendenza, bool bagnato, int vento){
         stato.acc = Vector3d::Zero();
     }
 
-    motore.LogicaMotor(stato, v_longit, t);
+    motore.LogicaMotor(stato, v_longit, t, pedal, stato.consuP);
     stato.timer += t;
 }
