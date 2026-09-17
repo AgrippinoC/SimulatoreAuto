@@ -56,13 +56,8 @@ class Telemetria:
             #consumo
             dist = x[-1] / 1000.0 # da metri a km
             logging.info(f"distanza: {dist}")
-            consumo_totale = consumi[-1] # L'ultimo valore accumulato
-            logging.info(f"consumo totale: {consumo_totale}")
-            # Calcolo litri per 100 km (evitando divisioni per zero)
-            if dist > 0:
-                consumo_medio_100km = (consumo_totale / dist) * 100.0
-            else:
-                consumo_medio_100km = 0.0
+            consumo_tot = consumi[-1]
+            consumo_medio = (consumo_tot / dist) * 100.0
 
             #traiettria
             fig1, ax1 = plt.subplots(figsize=(10, 7))
@@ -115,7 +110,7 @@ class Telemetria:
                 "img_data2": buf2.getvalue(),
                 "img_data3": buf3.getvalue(),
                 "dist_frenata": dist_fren,
-                "consumo_med": consumo_medio_100km
+                "consumo_med": consumo_medio
             }
 
         except Exception as e:
