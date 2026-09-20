@@ -28,18 +28,9 @@ void Motore::LogicaMotor(Stato& stato, double v, double t, double pedal, double 
     double raff = (stato.temper - f.ambiente) * 0.02;
     stato.temper += (risc - raff) * t;
 
-    //temporaneo
+    //temporaneo consumo
     stato.consumoL += (0.0002 + (stato.rpm / stato.rMax) * pedal * consum) * t; // litri al secondo * tempo
 
-
-    /*
-    0.0002 (Consumo al minimo / Idle consumption):
-    Rappresenta il consumo base di carburante (in litri al secondo) a motore acceso anche senza premere l'acceleratore
-
-    0.0030 (Consumo a pieno carico / Full load factor) (0,18 l/min)
-
-    Rappresenta il consumo aggiuntivo massimo quando il pedale è premuto al massimo ($pedal = 1.0$) e il motore raggiunge i giri massimi 
- */
 }
 
 Vector3d Fisica::Formule(Stato& stato, double coppia, const Vector3d& dir, double v, double theta, double mu, int vento, double frenata){
