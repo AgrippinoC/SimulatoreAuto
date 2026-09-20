@@ -3,8 +3,7 @@
 #include <numbers>
 #include "funzioni.h"
 
-Percorso::Percorso(const DatiPercorso& dati) : tratti(dati.tratti) {
-}
+Percorso::Percorso(const DatiPercorso& dati) : tratti(dati.tratti) {}
 
 double Percorso::getPendenza(double posX) const {
     for (const auto& tratto : tratti) {
